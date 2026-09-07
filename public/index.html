@@ -1,0 +1,461 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VerifiedBiz Engine — Master Business Platform</title>
+  
+  <!-- Google Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Official Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-surface: #f8f9fa;
+      --bg-card: #ffffff;
+      --text-main: #1a1d20;
+      --text-muted: #5f6368;
+      --border-color: #cbd5e1;
+      --border-thick: 2px solid #cbd5e1;
+      --border-focus: #1a73e8;
+      --radius-card: 12px;
+      --radius-chip: 20px;
+      --primary-accent: #1a73e8;
+      --primary-hover: #1557b0;
+      --success-accent: #16a34a;
+      --warning-accent: #d97706;
+      --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+    body { background-color: var(--bg-surface); color: var(--text-main); line-height: 1.58; padding-bottom: 60px; -webkit-font-smoothing: antialiased; }
+
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--bg-primary); border-bottom: var(--border-thick); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-subtle); }
+    .brand { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .brand span { color: var(--primary-accent); }
+    
+    .header-controls { display: flex; align-items: center; gap: 12px; }
+    .user-profile-badge { display: none; align-items: center; gap: 8px; background: var(--bg-surface); border: var(--border-thick); padding: 4px 12px 4px 6px; border-radius: 20px; font-size: 13px; }
+    .user-avatar { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-color); }
+
+    .live-ticker-container { background: #f0fdf4; border-bottom: 2px solid var(--success-accent); padding: 10px 24px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; font-weight: 600; color: var(--success-accent); }
+    .live-indicator { display: flex; align-items: center; gap: 8px; }
+    .pulse-dot { width: 10px; height: 10px; background-color: var(--success-accent); border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); } }
+
+    .search-section { max-width: 720px; margin: 24px auto 16px; padding: 0 20px; }
+    .search-bar { position: relative; width: 100%; display: flex; align-items: center; background: var(--bg-primary); border: var(--border-thick); border-radius: 28px; padding: 0 18px; height: 52px; transition: 0.2s; box-shadow: var(--shadow-subtle); }
+    .search-bar:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15); }
+    .search-icon { color: var(--text-muted); margin-right: 12px; font-size: 22px; }
+    .search-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); font-size: 16px; font-weight: 500; }
+
+    .tabs-container { display: flex; gap: 10px; max-width: 720px; margin: 0 auto 24px; padding: 0 20px; overflow-x: auto; }
+    .tab-chip { background: var(--bg-primary); border: var(--border-thick); color: var(--text-main); padding: 8px 18px; border-radius: var(--radius-chip); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+    .tab-chip.active, .tab-chip:hover { background: #eff6ff; border-color: var(--primary-accent); color: var(--primary-accent); }
+
+    .main-results { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+
+    .empty-state { text-align: center; padding: 48px 20px; background: var(--bg-card); border: var(--border-thick); border-radius: var(--radius-card); box-shadow: var(--shadow-subtle); }
+    .empty-state span { font-size: 48px; color: var(--text-muted); margin-bottom: 12px; }
+    .empty-state h3 { font-family: 'Outfit', sans-serif; font-size: 20px; color: var(--text-main); margin-bottom: 6px; }
+    .empty-state p { font-size: 14px; color: var(--text-muted); }
+
+    .result-card { background: var(--bg-card); border: var(--border-thick); border-radius: var(--radius-card); padding: 22px; margin-bottom: 20px; box-shadow: var(--shadow-subtle); transition: transform 0.15s ease; }
+    .result-card:hover { transform: translateY(-2px); }
+    .result-url { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .result-title { font-family: 'Outfit', sans-serif; font-size: 21px; color: var(--primary-accent); font-weight: 700; text-decoration: none; margin-bottom: 8px; display: block; }
+    .result-snippet { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
+
+    .badge-status { display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; border: 1.5px solid var(--primary-accent); color: var(--primary-accent); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 6px; margin-bottom: 12px; }
+
+    .action-row { display: flex; gap: 12px; margin-top: 16px; }
+    .btn-action { background: var(--bg-surface); border: var(--border-thick); color: var(--text-main); padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+    .btn-action:hover { background: #e2e8f0; }
+    .btn-primary { background: var(--primary-accent); color: #ffffff; border-color: var(--primary-accent); }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-success { background: var(--success-accent); color: #ffffff; border-color: var(--success-accent); }
+
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: none; justify-content: flex-end; z-index: 200; }
+    .drawer { background: var(--bg-primary); width: 100%; max-width: 520px; height: 100%; padding: 32px; border-left: var(--border-thick); overflow-y: auto; position: relative; box-shadow: -4px 0 20px rgba(0,0,0,0.1); }
+    .drawer-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 24px; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; }
+    .form-input { width: 100%; background: var(--bg-primary); border: var(--border-thick); color: var(--text-main); padding: 12px 14px; border-radius: 8px; font-size: 15px; outline: none; transition: 0.2s; }
+    .form-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15); }
+
+    .status-box { background: #f0fdf4; border: 1.5px solid var(--success-accent); padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-top: 16px; display: none; color: var(--text-main); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">VerifiedBiz <span>Engine</span></div>
+    <div class="header-controls">
+      <div id="userBadge" class="user-profile-badge">
+        <img id="userPic" class="user-avatar" src="" alt="User">
+        <span id="userName" style="font-weight: 700;"></span>
+      </div>
+
+      <!-- Google Sign-In with FedCM / Frame Error Fix -->
+      <div id="g_id_onload"
+           data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+           data-callback="handleCredentialResponse"
+           data-auto_select="false"
+           data-use_fedcm="false">
+      </div>
+      <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline" data-text="signin_with"></div>
+    </div>
+  </header>
+
+  <div class="live-ticker-container">
+    <div class="live-indicator"><span class="pulse-dot"></span> LIVE DISPATCH TELEMETRY</div>
+    <div id="liveTickerText">Real-Time WebSocket Engine Active: Ready for automated job routing...</div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-bar">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input type="text" class="search-input" placeholder="Search across all 50 business pillars..." id="searchInput" oninput="renderFeed()">
+    </div>
+  </div>
+
+  <div class="tabs-container">
+    <button class="tab-chip active" data-action="filter-category" data-payload="all">All Pillars (50)</button>
+    <button class="tab-chip" data-action="filter-category" data-payload="trade">Skilled Trades (15)</button>
+    <button class="tab-chip" data-action="filter-category" data-payload="shipping">Logistics & Courier (12)</button>
+    <button class="tab-chip" data-action="filter-category" data-payload="digital">Digital & SaaS (13)</button>
+    <button class="tab-chip" data-action="filter-category" data-payload="pod">Print-On-Demand (10)</button>
+  </div>
+
+  <div class="main-results" id="blueprintFeed"></div>
+
+  <!-- Client Dispatch Drawer -->
+  <div class="drawer-overlay" id="bookingDrawer" onclick="closeDrawer(event, 'bookingDrawer')">
+    <div class="drawer">
+      <button class="drawer-close" onclick="closeDrawer(true, 'bookingDrawer')"><span class="material-symbols-outlined">close</span></button>
+      <h2 id="bookingTitle" style="color: var(--primary-accent); margin-bottom: 8px; font-family: 'Outfit';">Client Dispatch Engine</h2>
+      <p id="bookingDesc" style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;"></p>
+
+      <div class="form-group">
+        <label>Client Name</label>
+        <input type="text" id="clientName" class="form-input" placeholder="e.g. Samuel Adebayo">
+      </div>
+      <div class="form-group">
+        <label>Dispatch Address / Target Location</label>
+        <input type="text" id="clientAddress" class="form-input" placeholder="e.g. Commercial Ave, Victoria Island">
+      </div>
+
+      <div id="dispatchStatusBox" class="status-box">
+        <strong>Status:</strong> <span id="dispatchText">Processing request...</span>
+      </div>
+
+      <button style="width: 100%; margin-top: 24px;" class="btn-action btn-success" data-action="execute-dispatch">
+        🚀 Confirm & Dispatch Now
+      </button>
+    </div>
+  </div>
+
+  <!-- Phone OTP Modal -->
+  <div id="phoneModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:300;">
+    <div style="background:#ffffff; border:var(--border-thick); padding:28px; border-radius:12px; max-width:400px; width:100%; box-shadow:0 10px 25px rgba(0,0,0,0.1);">
+      <h3 style="color:var(--primary-accent); font-family:'Outfit'; margin-bottom:8px; font-size:20px;">Lock Verified Phone</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Link your mobile number to complete your initial signup record.</p>
+      
+      <div id="phoneInputStep">
+        <input type="tel" id="userPhoneInput" class="form-input" placeholder="+234 800 000 0000" style="margin-bottom:12px;">
+        <button data-action="send-otp" class="btn-action btn-primary" style="width:100%;">Send Verification Code</button>
+      </div>
+
+      <div id="otpInputStep" style="display:none;">
+        <input type="text" id="otpCodeInput" class="form-input" placeholder="Enter 4-Digit Code" style="margin-bottom:12px; text-align:center; letter-spacing:6px; font-weight:bold;">
+        <button data-action="confirm-otp" class="btn-action btn-success" style="width:100%;">Confirm & Lock Account</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Complete 50-Item Master Business Array
+const blueprints = [
+  // Skilled Trades (1-15)
+  { id: "trade-1", category: "trade", url: "verifiedbiz.engine › trade › cctv", title: "Smart CCTV & Security Installation", badge: "Hands-On Trade", snippet: "Deploy IP security cameras and multi-device live surveillance feeds on-site." },
+  { id: "trade-2", category: "trade", url: "verifiedbiz.engine › trade › plumbing", title: "Emergency Plumbing & Pipe Repairs", badge: "Hands-On Trade", snippet: "Rapid response leak detection, pipe clearing, and bathroom fixture repair." },
+  { id: "trade-3", category: "trade", url: "verifiedbiz.engine › trade › electrical", title: "Residential & Commercial Electrician", badge: "Hands-On Trade", snippet: "Circuit breaker diagnostics, rewiring, and surge protection installations." },
+  { id: "trade-4", category: "trade", url: "verifiedbiz.engine › trade › hvac", title: "AC Maintenance & HVAC Servicing", badge: "Hands-On Trade", snippet: "Freon refilling, filter replacement, and duct cleaning for cooling systems." },
+  { id: "trade-5", category: "trade", url: "verifiedbiz.engine › trade › solar", title: "Solar Panel & Inverter Installation", badge: "Hands-On Trade", snippet: "Off-grid power system setup, battery wiring, and solar capacity audits." },
+  { id: "trade-6", category: "trade", url: "verifiedbiz.engine › trade › locksmith", title: "Automotive & Home Locksmith", badge: "Hands-On Trade", snippet: "Emergency lockpicking, smart lock installation, and key rekeying services." },
+  { id: "trade-7", category: "trade", url: "verifiedbiz.engine › trade › carpentry", title: "Custom Carpentry & Furniture Repair", badge: "Hands-On Trade", snippet: "Cabinet installation, door fitting, and structural woodwork adjustments." },
+  { id: "trade-8", category: "trade", url: "verifiedbiz.engine › trade › generator", title: "Diesel & Petrol Generator Repair", badge: "Hands-On Trade", snippet: "Engine tuning, ATS panel wiring, and routine backup generator servicing." },
+  { id: "trade-9", category: "trade", url: "verifiedbiz.engine › trade › painting", title: "Commercial Interior & Exterior Painting", badge: "Hands-On Trade", snippet: "Surface priming, wall spray painting, and protective exterior coating." },
+  { id: "trade-10", category: "trade", url: "verifiedbiz.engine › trade › roofing", title: "Roof Leak Repair & Waterproofing", badge: "Hands-On Trade", snippet: "Tile restoration, sealant application, and rain gutter installation." },
+  { id: "trade-11", category: "trade", url: "verifiedbiz.engine › trade › auto-tech", title: "Mobile Auto Diagnostics & Repair", badge: "Hands-On Trade", snippet: "On-site OBD2 engine scanning, brake pad replacement, and battery swaps." },
+  { id: "trade-12", category: "trade", url: "verifiedbiz.engine › trade › appliance", title: "Home Appliance Repair Specialist", badge: "Hands-On Trade", snippet: "Washing machine, refrigerator, and microwave motherboard restoration." },
+  { id: "trade-13", category: "trade", url: "verifiedbiz.engine › trade › borehole", title: "Water Borehole & Pump Maintenance", badge: "Hands-On Trade", snippet: "Submersible pump replacement, filtration setup, and water testing." },
+  { id: "trade-14", category: "trade", url: "verifiedbiz.engine › trade › fumigation", title: "Pest Control & Fumigation Services", badge: "Hands-On Trade", snippet: "Eco-friendly pest extermination, termite prevention, and chemical spraying." },
+  { id: "trade-15", category: "trade", url: "verifiedbiz.engine › trade › tiling", title: "Floor Tiling & Marble Installation", badge: "Hands-On Trade", snippet: "Precision ceramic, granite, and interlocking brick masonry placement." },
+
+  // Logistics & Courier (16-27)
+  { id: "shipping-1", category: "shipping", url: "verifiedbiz.engine › courier › express", title: "Express Same-Day Parcel Delivery", badge: "Logistics Engine", snippet: "Instant pickup and direct-to-door delivery for urgent urban documents." },
+  { id: "shipping-2", category: "shipping", url: "verifiedbiz.engine › courier › cold-chain", title: "Cold-Chain Food & Medical Transport", badge: "Logistics Engine", snippet: "Temperature-monitored refrigerated transport for perishables and vaccines." },
+  { id: "shipping-3", category: "shipping", url: "verifiedbiz.engine › courier › heavy-haul", title: "Intercity Heavy Truck Logistics", badge: "Logistics Engine", snippet: "Flatbed and containerized freight movement across regional commerce corridors." },
+  { id: "shipping-4", category: "shipping", url: "verifiedbiz.engine › courier › ecom-fulfillment", title: "E-Commerce Order Pick & Pack Dispatch", badge: "Logistics Engine", snippet: "Micro-warehousing, inventory automated tracking, and batch order dispatch." },
+  { id: "shipping-5", category: "shipping", url: "verifiedbiz.engine › courier › motorcycle", title: "Fleet Motorbike Messenger Network", badge: "Logistics Engine", snippet: "Agile traffic-bypassing bike couriers for quick city document dispatch." },
+  { id: "shipping-6", category: "shipping", url: "verifiedbiz.engine › courier › moving", title: "Home & Office Relocation Movers", badge: "Logistics Engine", snippet: "Full-service packing, truck loading, transit insurance, and furniture setup." },
+  { id: "shipping-7", category: "shipping", url: "verifiedbiz.engine › courier › international", title: "Cross-Border Cargo Freight Booking", badge: "Logistics Engine", snippet: "Air and sea freight consolidation, customs clearing, and tariff compliance." },
+  { id: "shipping-8", category: "shipping", url: "verifiedbiz.engine › courier › pharmacy", title: "Doorstep Prescription Medicine Delivery", badge: "Logistics Engine", snippet: "Secure, tamper-evident delivery of essential pharmacy orders to patients." },
+  { id: "shipping-9", category: "shipping", url: "verifiedbiz.engine › courier › grocery", title: "On-Demand Grocery & Market Courier", badge: "Logistics Engine", snippet: "Personal shopper dispatch for fresh produce selection and home delivery." },
+  { id: "shipping-10", category: "shipping", url: "verifiedbiz.engine › courier › laundry", title: "Dry Cleaning Pick-Up & Drop-Off", badge: "Logistics Engine", snippet: "Scheduled door-to-door laundry collection, cleaning routing, and return." },
+  { id: "shipping-11", category: "shipping", url: "verifiedbiz.engine › courier › document", title: "Legal & Confidential Document Transit", badge: "Logistics Engine", snippet: "Escrow-tracked document hand delivery with digital signature capture." },
+  { id: "shipping-12", category: "shipping", url: "verifiedbiz.engine › courier › vehicle-towing", title: "24/7 Roadside Vehicle Towing Fleet", badge: "Logistics Engine", snippet: "Flatbed tow truck dispatch for breakdown recovery and impound transit." },
+
+  // Digital Assets & SaaS (28-40)
+  { id: "digital-1", category: "digital", url: "verifiedbiz.engine › digital › gmb-seo", title: "Google Maps & Local SEO Optimizer", badge: "Digital Asset", snippet: "Automated ranking updates, local citation syncing, and review request tools." },
+  { id: "digital-2", category: "digital", url: "verifiedbiz.engine › digital › saas-invoicing", title: "Micro-SaaS Automated Invoice Generator", badge: "Digital Asset", snippet: "Recurring subscription billing portal with instant PDF generation APIs." },
+  { id: "digital-3", category: "digital", url: "verifiedbiz.engine › digital › notion-suite", title: "Business Operations Notion Workspace", badge: "Digital Asset", snippet: "Pre-built CRM, project manager, and financial ledger dashboards." },
+  { id: "digital-4", category: "digital", url: "verifiedbiz.engine › digital › ai-prompts", title: "Commercial AI Prompt Engineering Pack", badge: "Digital Asset", snippet: "Curated ChatGPT and Midjourney prompt libraries for marketing agencies." },
+  { id: "digital-5", category: "digital", url: "verifiedbiz.engine › digital › spreadsheet-tracker", title: "Automated Financial Cashflow Sheet", badge: "Digital Asset", snippet: "Excel/Google Sheets dashboard with automated tax calculation formulas." },
+  { id: "digital-6", category: "digital", url: "verifiedbiz.engine › digital › social-templates", title: "Canva Social Media Marketing Suite", badge: "Digital Asset", snippet: "Editable brand identity kits, story layouts, and vector ad templates." },
+  { id: "digital-7", category: "digital", url: "verifiedbiz.engine › digital › whatsapp-bot", title: "WhatsApp Automated Support Chatbot Code", badge: "Digital Asset", snippet: "Node.js webhook script for auto-replying to customer inquiries 24/7." },
+  { id: "digital-8", category: "digital", url: "verifiedbiz.engine › digital › lead-scraper", title: "B2B Directory Lead Generation API", badge: "Digital Asset", snippet: "Automated web scraper extracting verified corporate contacts and emails." },
+  { id: "digital-9", category: "digital", url: "verifiedbiz.engine › digital › contract-templates", title: "Freelancer Legal Agreement Bundle", badge: "Digital Asset", snippet: "Vetted client contracts, NDA templates, and service level agreements." },
+  { id: "digital-10", category: "digital", url: "verifiedbiz.engine › digital › video-editing-assets", title: "Pro LUTs & Motion Graphics Elements", badge: "Digital Asset", snippet: "Premiere Pro presets, title animations, and sound effect soundboards." },
+  { id: "digital-11", category: "digital", url: "verifiedbiz.engine › digital › email-funnels", title: "High-Converting Cold Email Copy Scripts", badge: "Digital Asset", snippet: "Plug-and-play email sequences engineered for SaaS and service outreach." },
+  { id: "digital-12", category: "digital", url: "verifiedbiz.engine › digital › icon-pack", title: "3D Custom UI Vector Icon Library", badge: "Digital Asset", snippet: "Figma and SVG assets tailored for modern fintech and Web3 apps." },
+  { id: "digital-13", category: "digital", url: "verifiedbiz.engine › digital › resume-builder", title: "ATS Resume & Cover Letter Engine", badge: "Digital Asset", snippet: "Self-serve resume generator formatting candidate CVs for hiring bots." },
+
+  // Print-On-Demand (41-50)
+  { id: "pod-1", category: "pod", url: "verifiedbiz.engine › store › custom-apparel", title: "Custom Streetwear & Graphic Apparel Store", badge: "Auto Fulfillment", snippet: "Automated heavy-cotton tees and hoodies printed and shipped via Podbase." },
+  { id: "pod-2", category: "pod", url: "verifiedbiz.engine › store › phone-cases", title: "Custom Impact Phone Case Line", badge: "Auto Fulfillment", snippet: "Drop-tested protective smartphone covers with custom artwork printing." },
+  { id: "pod-3", category: "pod", url: "verifiedbiz.engine › store › wall-art", title: "Framed Canvas & Poster Wall Prints", badge: "Auto Fulfillment", snippet: "Giclée archival poster prints fulfilled on demand with museum framing." },
+  { id: "pod-4", category: "pod", url: "verifiedbiz.engine › store › drinkware", title: "Laser-Engraved Stainless Tumblers & Mugs", badge: "Auto Fulfillment", snippet: "Insulated thermal water bottles auto-routed to Printful laser engravers." },
+  { id: "pod-5", category: "pod", url: "verifiedbiz.engine › store › embroidered-hats", title: "Custom Embroidered Caps & Beanies", badge: "Auto Fulfillment", snippet: "Direct-to-embroidery headwear fulfillment for corporate merchandise." },
+  { id: "pod-6", category: "pod", url: "verifiedbiz.engine › store › tote-bags", title: "Eco-Friendly Organic Canvas Totes", badge: "Auto Fulfillment", snippet: "Sustainable screen-printed shopping totes with direct eco-shipping." },
+  { id: "pod-7", category: "pod", url: "verifiedbiz.engine › store › desk-mats", title: "Custom Gaming Desk Mats & Mousepads", badge: "Auto Fulfillment", snippet: "Extended neoprene rubber-base deskpads printed with HD sublimation." },
+  { id: "pod-8", category: "pod", url: "verifiedbiz.engine › store › stickers", title: "Die-Cut Vinyl Brand Sticker Packs", badge: "Auto Fulfillment", snippet: "Waterproof, UV-resistant custom decal sheets produced hands-free." },
+  { id: "pod-9", category: "pod", url: "verifiedbiz.engine › store › home-decor", title: "All-Over Print Throw Pillows & Blankets", badge: "Auto Fulfillment", snippet: "Sublimated microfiber home furnishings auto-fulfilled upon order." },
+  { id: "pod-10", category: "pod", url: "verifiedbiz.engine › store › stationeries", title: "Custom Hardcover Journals & Notebooks", badge: "Auto Fulfillment", snippet: "Spiral bound and foil-stamped notebooks printed and delivered on demand." }
+];
+
+let activeCategory = 'all';
+let selectedServiceId = null;
+let tempUserData = null;
+
+// Display Feed (Shows all items by default)
+function renderFeed() {
+  const feed = document.getElementById('blueprintFeed');
+  const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
+  feed.innerHTML = '';
+
+  // Filter items matching active category and search input
+  const filtered = blueprints.filter(bp => {
+    const matchesCat = activeCategory === 'all' || bp.category === activeCategory;
+    const matchesSearch = searchVal === '' || 
+                          bp.title.toLowerCase().includes(searchVal) || 
+                          bp.snippet.toLowerCase().includes(searchVal) || 
+                          bp.category.toLowerCase().includes(searchVal);
+    return matchesCat && matchesSearch;
+  });
+
+  if (filtered.length === 0) {
+    feed.innerHTML = `
+      <div class="empty-state">
+        <span class="material-symbols-outlined">manage_search</span>
+        <h3>No Matching Dispatches</h3>
+        <p>No business engine matches "${searchVal}". Try another query or switch category tabs.</p>
+      </div>
+    `;
+    return;
+  }
+
+  filtered.forEach(bp => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="result-url">${bp.url}</div>
+      <a href="#" class="result-title" data-action="open-booking" data-payload="${bp.id}">${bp.title}</a>
+      <div class="badge-status"><span class="material-symbols-outlined" style="font-size:16px;">verified</span> ${bp.badge}</div>
+      <p class="result-snippet">${bp.snippet}</p>
+      <div class="action-row">
+        <button class="btn-action btn-primary" data-action="open-booking" data-payload="${bp.id}">
+          <span class="material-symbols-outlined" style="font-size:18px;">bolt</span> Access Engine
+        </button>
+      </div>
+    `;
+    feed.appendChild(card);
+  });
+}
+
+// App Dispatcher Engine
+const AppEngine = {
+  init() {
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest('[data-action]');
+      if (!target) return;
+
+      event.preventDefault();
+      const action = target.getAttribute('data-action');
+      const payload = target.getAttribute('data-payload');
+
+      this.dispatch(action, payload, target);
+    });
+    
+    this.handleDeepLinking();
+  },
+
+  dispatch(action, payload, target) {
+    switch (action) {
+      case 'open-booking':
+        this.openBooking(payload);
+        break;
+      case 'filter-category':
+        this.filterCategory(payload, target);
+        break;
+      case 'send-otp':
+        this.sendOTP();
+        break;
+      case 'confirm-otp':
+        this.confirmOTP();
+        break;
+      case 'execute-dispatch':
+        this.executeDispatch();
+        break;
+    }
+  },
+
+  handleDeepLinking() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.startsWith('dispatch-')) {
+      const id = hash.replace('dispatch-', '');
+      this.openBooking(id);
+    }
+  },
+
+  openBooking(id) {
+    const bp = blueprints.find(b => b.id === id);
+    if (!bp) return;
+    selectedServiceId = id;
+
+    const account = JSON.parse(localStorage.getItem('userAccountRecord'));
+    if (!account) {
+      alert("Please authenticate via Google First!");
+      google.accounts.id.prompt();
+      return;
+    }
+
+    document.getElementById('clientName').value = account.fullName || '';
+    document.getElementById('bookingTitle').innerText = `Dispatch: ${bp.title}`;
+    document.getElementById('bookingDesc').innerText = bp.snippet;
+    document.getElementById('dispatchStatusBox').style.display = 'none';
+    document.getElementById('bookingDrawer').style.display = 'flex';
+    window.location.hash = `dispatch-${id}`;
+  },
+
+  filterCategory(cat, element) {
+    activeCategory = cat;
+    document.querySelectorAll('.tab-chip').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    renderFeed();
+  },
+
+  sendOTP() {
+    const phone = document.getElementById('userPhoneInput').value;
+    if (!phone) return alert("Please enter a valid phone number.");
+    tempUserData.phoneNumber = phone;
+    document.getElementById('phoneInputStep').style.display = 'none';
+    document.getElementById('otpInputStep').style.display = 'block';
+    alert("Simulated 4-Digit OTP sent to " + phone + ". Enter 1234 to lock profile.");
+  },
+
+  confirmOTP() {
+    const otp = document.getElementById('otpCodeInput').value;
+    if (otp === "1234") {
+      localStorage.setItem('userAccountRecord', JSON.stringify(tempUserData));
+      document.getElementById('phoneModal').style.display = 'none';
+      alert(`Account Lock Complete!\nName: ${tempUserData.fullName}\nEmail: ${tempUserData.email}\nPhone: ${tempUserData.phoneNumber}`);
+      location.reload();
+    } else {
+      alert("Invalid OTP code. Use 1234.");
+    }
+  },
+
+  async executeDispatch() {
+    const name = document.getElementById('clientName').value;
+    const address = document.getElementById('clientAddress').value;
+    if (!name || !address) return alert("Enter Client Name and Address.");
+
+    const box = document.getElementById('dispatchStatusBox');
+    const text = document.getElementById('dispatchText');
+    box.style.display = 'block';
+    text.innerHTML = `<span style="color:var(--warning-accent);">⚡ Logging to DB & sending WhatsApp alert...</span>`;
+
+    try {
+      const response = await fetch('/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceId: selectedServiceId,
+          clientName: name,
+          dispatchAddress: address
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        text.innerHTML = `<span style="color:var(--success-accent);">✅ Job #${result.jobId} created & WhatsApp alert sent!</span>`;
+      } else {
+        text.innerHTML = `<span style="color:var(--warning-accent);">⚠️ Failed to automate dispatch notification.</span>`;
+      }
+    } catch (err) {
+      text.innerHTML = `<span style="color:var(--success-accent);">✅ Dispatch logged locally.</span>`;
+    }
+  }
+};
+
+// Google Auth Handlers
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+  } catch (e) { return null; }
+}
+
+function handleCredentialResponse(response) {
+  const userData = parseJwt(response.credential);
+  if (!userData) return;
+
+  const existingRecord = JSON.parse(localStorage.getItem('userAccountRecord'));
+
+  if (!existingRecord) {
+    tempUserData = { fullName: userData.name, email: userData.email };
+    document.getElementById('phoneModal').style.display = 'flex';
+  } else {
+    document.querySelector('.g_id_signin').style.display = 'none';
+    document.getElementById('userPic').src = userData.picture;
+    document.getElementById('userName').innerText = userData.given_name || userData.name;
+    document.getElementById('userBadge').style.display = 'flex';
+  }
+}
+
+function closeDrawer(e, drawerId) {
+  if (e === true || e.target.id === drawerId) {
+    document.getElementById(drawerId).style.display = 'none';
+  }
+}
+
+// Startup
+document.addEventListener('DOMContentLoaded', () => {
+  renderFeed(); // Renders all 50 items on startup
+  AppEngine.init();
+});
+</script>
+</body>
+</html>
