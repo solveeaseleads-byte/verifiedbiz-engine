@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,7 +82,7 @@
         <span id="userName" style="font-weight: 700;"></span>
       </div>
       <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+           data-client_id="181920475006-305lobieplldt1ethmb7rdbicnfkudnv.apps.googleusercontent.com"
            data-callback="handleCredentialResponse"
            data-auto_select="false"
            data-use_fedcm="false">
@@ -92,13 +91,6 @@
     </div>
   </header>
 
-  <!--
-    Honesty note: this ticker previously claimed a live WebSocket engine
-    that didn't exist. It now just labels the dispatch queue as a feature
-    of the platform rather than asserting live activity that isn't real.
-    Swap liveTickerText's content for a real count (e.g. open jobs pulled
-    from the `dispatches` table) once you want it to be truthful AND dynamic.
-  -->
   <div class="live-ticker-container">
     <div class="live-indicator"><span class="pulse-dot"></span> DISPATCH QUEUE</div>
     <div id="liveTickerText">Automated job routing via WhatsApp — connect to submit a request.</div>
@@ -135,7 +127,177 @@
       </div>
       <div class="form-group">
         <label>Dispatch Address / Target Location</label>
-< truncated lines 137-310 >
+        <input type="text" id="clientAddress" class="form-input" placeholder="e.g. Commercial Ave, Victoria Island">
+      </div>
+
+      <div id="dispatchStatusBox" class="status-box">
+        <strong>Status:</strong> <span id="dispatchText"></span>
+      </div>
+
+      <button style="width: 100%; margin-top: 24px;" class="btn-action btn-success" data-action="execute-dispatch" id="dispatchBtn">
+        🚀 Confirm & Dispatch Now
+      </button>
+    </div>
+  </div>
+
+  <!-- Phone OTP Modal (now backed by real endpoints) -->
+  <div id="phoneModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; z-index:300;">
+    <div style="background:#ffffff; border:var(--border-thick); padding:28px; border-radius:12px; max-width:400px; width:100%; box-shadow:0 10px 25px rgba(0,0,0,0.1);">
+      <h3 style="color:var(--primary-accent); font-family:'Outfit'; margin-bottom:8px; font-size:20px;">Verify Your Phone</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">We'll send a real verification code via WhatsApp to link your number.</p>
+
+      <div id="phoneInputStep">
+        <input type="tel" id="userPhoneInput" class="form-input" placeholder="+234 800 000 0000" style="margin-bottom:12px;">
+        <button data-action="send-otp" class="btn-action btn-primary" style="width:100%;" id="sendOtpBtn">Send Verification Code</button>
+        <p id="otpSendError" style="color:var(--error-accent); font-size:12px; margin-top:8px; display:none;"></p>
+      </div>
+
+      <div id="otpInputStep" style="display:none;">
+        <input type="text" id="otpCodeInput" class="form-input" placeholder="Enter 4-Digit Code" style="margin-bottom:12px; text-align:center; letter-spacing:6px; font-weight:bold;">
+        <button data-action="confirm-otp" class="btn-action btn-success" style="width:100%;" id="confirmOtpBtn">Confirm & Lock Account</button>
+        <p id="otpVerifyError" style="color:var(--error-accent); font-size:12px; margin-top:8px; display:none;"></p>
+      </div>
+    </div>
+  </div>
+
+<script>
+const blueprints = [
+  { id: "trade-1", category: "trade", url: "verifiedbiz.engine › trade › cctv", title: "Smart CCTV & Security Installation", badge: "Hands-On Trade", snippet: "Deploy IP security cameras and multi-device live surveillance feeds on-site." },
+  { id: "trade-2", category: "trade", url: "verifiedbiz.engine › trade › plumbing", title: "Emergency Plumbing & Pipe Repairs", badge: "Hands-On Trade", snippet: "Rapid response leak detection, pipe clearing, and bathroom fixture repair." },
+  { id: "trade-3", category: "trade", url: "verifiedbiz.engine › trade › electrical", title: "Residential & Commercial Electrician", badge: "Hands-On Trade", snippet: "Circuit breaker diagnostics, rewiring, and surge protection installations." },
+  { id: "digital-1", category: "digital", url: "verifiedbiz.engine › digital › gmb-seo", title: "Google Maps & Local SEO Optimizer", badge: "Digital Asset", snippet: "Automated ranking updates, local citation syncing, and review request tools." },
+  { id: "shipping-1", category: "shipping", url: "verifiedbiz.engine › courier › express", title: "Express Same-Day Parcel Delivery", badge: "Logistics Engine", snippet: "Instant pickup and direct-to-door delivery for urgent urban documents." },
+  { id: "pod-1", category: "pod", url: "verifiedbiz.engine › store › custom-apparel", title: "Custom Streetwear & Graphic Apparel Store", badge: "Auto Fulfillment", snippet: "Automated heavy-cotton tees and hoodies printed and shipped via Podbase." }
+];
+
+let activeCategory = 'all';
+let selectedServiceId = null;
+let tempUserData = null;
+let currentRequestId = null;
+
+function renderFeed() {
+  const feed = document.getElementById('blueprintFeed');
+  const searchVal = document.getElementById('searchInput').value.trim().toLowerCase();
+  feed.innerHTML = '';
+
+  const filtered = blueprints.filter(bp => {
+    const matchesCat = activeCategory === 'all' || bp.category === activeCategory;
+    const matchesSearch = searchVal === '' ||
+                          bp.title.toLowerCase().includes(searchVal) ||
+                          bp.snippet.toLowerCase().includes(searchVal) ||
+                          bp.category.toLowerCase().includes(searchVal);
+    return matchesCat && matchesSearch;
+  });
+
+  if (filtered.length === 0) {
+    feed.innerHTML = `
+      <div class="empty-state">
+        <span class="material-symbols-outlined">manage_search</span>
+        <h3>No Matching Dispatches</h3>
+        <p>No business engine matches "${searchVal}". Try another query or switch category tabs.</p>
+      </div>
+    `;
+    return;
+  }
+
+  filtered.forEach(bp => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="result-url">${bp.url}</div>
+      <a href="#" class="result-title" data-action="open-booking" data-payload="${bp.id}">${bp.title}</a>
+      <div class="badge-status"><span class="material-symbols-outlined" style="font-size:16px;">verified</span> ${bp.badge}</div>
+      <p class="result-snippet">${bp.snippet}</p>
+      <div class="action-row">
+        <button class="btn-action btn-primary" data-action="open-booking" data-payload="${bp.id}">
+          <span class="material-symbols-outlined" style="font-size:18px;">bolt</span> Access Engine
+        </button>
+      </div>
+    `;
+    feed.appendChild(card);
+  });
+}
+
+const AppEngine = {
+  init() {
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest('[data-action]');
+      if (!target) return;
+      event.preventDefault();
+      const action = target.getAttribute('data-action');
+      const payload = target.getAttribute('data-payload');
+      this.dispatch(action, payload, target);
+    });
+    this.handleDeepLinking();
+  },
+
+  dispatch(action, payload) {
+    switch (action) {
+      case 'open-booking': this.openBooking(payload); break;
+      case 'filter-category': this.filterCategory(payload, event.target); break;
+      case 'send-otp': this.sendOTP(); break;
+      case 'confirm-otp': this.confirmOTP(); break;
+      case 'execute-dispatch': this.executeDispatch(); break;
+    }
+  },
+
+  handleDeepLinking() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash.startsWith('dispatch-')) {
+      this.openBooking(hash.replace('dispatch-', ''));
+    }
+  },
+
+  openBooking(id) {
+    const bp = blueprints.find(b => b.id === id);
+    if (!bp) return;
+    selectedServiceId = id;
+    currentRequestId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+
+    const account = JSON.parse(localStorage.getItem('userAccountRecord') || 'null');
+    if (!account) {
+      alert("Please authenticate via Google first!");
+      google.accounts.id.prompt();
+      return;
+    }
+
+    document.getElementById('clientName').value = account.fullName || '';
+    document.getElementById('bookingTitle').innerText = `Dispatch: ${bp.title}`;
+    document.getElementById('bookingDesc').innerText = bp.snippet;
+    const box = document.getElementById('dispatchStatusBox');
+    box.style.display = 'none';
+    box.className = 'status-box';
+    document.getElementById('bookingDrawer').style.display = 'flex';
+    window.location.hash = `dispatch-${id}`;
+  },
+
+  filterCategory(cat, element) {
+    activeCategory = cat;
+    document.querySelectorAll('.tab-chip').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    renderFeed();
+  },
+
+  async sendOTP() {
+    const phone = document.getElementById('userPhoneInput').value.trim();
+    const errEl = document.getElementById('otpSendError');
+    errEl.style.display = 'none';
+    if (!phone) { errEl.textContent = 'Enter a valid phone number.'; errEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('sendOtpBtn');
+    btn.disabled = true; btn.textContent = 'Sending...';
+
+    try {
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone })
+      });
+      const result = await res.json();
+
+      if (!result.success) {
+        errEl.textContent = result.error || 'Could not send code.';
+        errEl.style.display = 'block';
         btn.disabled = false; btn.textContent = 'Send Verification Code';
         return;
       }
@@ -219,17 +381,16 @@
         text.innerHTML = result.deduped
           ? `✅ Job #${result.jobId} already logged — no duplicate created.`
           : `✅ Job #${result.jobId} created & WhatsApp alert sent!`;
-        return; // leave button disabled — this attempt is done
+        return;
       } else {
-        // Honest failure — no fake "logged locally" fallback.
         box.className = 'status-box err';
         text.innerHTML = `⚠️ Dispatch failed: ${result.error || 'unknown error'}. Nothing was sent.`;
-        btn.disabled = false; // allow retry on genuine failure
+        btn.disabled = false;
       }
     } catch (err) {
       box.className = 'status-box err';
       text.innerHTML = `⚠️ Could not reach the server. Nothing was sent — please try again.`;
-      btn.disabled = false; // allow retry on network failure
+      btn.disabled = false;
     }
   }
 };
