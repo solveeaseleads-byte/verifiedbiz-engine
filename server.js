@@ -19,22 +19,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-app.post('/api/whatsapp-webhook', async (req, res) => {
-  const { serviceId, clientName, dispatchAddress } = req.body;
-
-  if (!serviceId || !clientName || !dispatchAddress) {
-    return res.status(400).json({ error: 'Missing information!' });
-  }
-
-  try {
-    const { data: job, error: dbError } = await supabase
-      .from('dispatches')
-      .insert([
-        {
-          service_id: serviceId,
-          client_name: clientName,
-          dispatch_address: dispatchAddress,
-          status: 'PENDING_PROVIDER'
+// --- WhatsApp send helper -------------------------------------------------
+// NOTE: fixed domain — the correct Meta Graph API host is graph.facebook.com,
+// not graph.facebook.net (that typo was silently breaking the original
+// dispatch-alert call too).
+async function sendWhatsAppMessage(toNumber, body) {
+  return axios.post(
+    `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
+    {
+      messaging_product: 'whatsapp',
+      to: toNumber,
+      type: 'text',
+      text: { body }
+    },
+    {
+      headers: {          status: 'PENDING_PROVIDER'
         }
       ])
       .select()
