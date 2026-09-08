@@ -41,7 +41,7 @@ async function sendWhatsAppMessage(toNumber, body) {
     }
   );
 }
-
+async function sendWhatsAppTemplate(toNumber, templateName, languageCode = 'en_US', bodyParams = []) { const payload = { messaging_product: 'whatsapp', to: toNumber, type: 'template', template: { name: templateName, language: { code: languageCode } } }; if (bodyParams.length > 0) { payload.template.components = [{ type: 'body', parameters: bodyParams.map((text) => ({ type: 'text', text })) }]; } return axios.post(`https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_ID}/messages`, payload, { headers: { Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' } }); }
 function generateOtp() {
   return String(Math.floor(1000 + Math.random() * 9000)); // 4-digit code
 }
@@ -110,10 +110,7 @@ app.post('/api/send-otp', async (req, res) => {
 
     if (dbError) throw dbError;
 
-    await sendWhatsAppMessage(
-      phoneNumber,
-      `Your VerifiedBiz Engine verification code is *${code}*. It expires in 5 minutes.`
-    );
+    await sendWhatsAppTemplate(phoneNumber, 'hello_world', 'en_US');
 
     res.status(200).json({ success: true, normalizedPhone: phoneNumber });
   } catch (err) {
