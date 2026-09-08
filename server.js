@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
@@ -34,7 +35,7 @@ async function sendWhatsAppMessage(toNumber, body) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}, 
+        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json'
       }
     }
