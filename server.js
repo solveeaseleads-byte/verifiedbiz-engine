@@ -34,7 +34,7 @@ async function sendWhatsAppMessage(toNumber, body) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}, 
         'Content-Type': 'application/json'
       }
     }
