@@ -115,6 +115,8 @@ app.post('/api/send-otp', async (req, res) => {
     res.status(200).json({ success: true, normalizedPhone: phoneNumber });
   } catch (err) {
     console.error('send-otp error:', err.message);
+    console.error('send-otp error details:', JSON.stringify(err.response?.data || {}));
+    console.error('token debug: length=' + (process.env.WHATSAPP_ACCESS_TOKEN || '').length + ' start=' + (process.env.WHATSAPP_ACCESS_TOKEN || '').slice(0,10) + ' end=' + (process.env.WHATSAPP_ACCESS_TOKEN || '').slice(-10));
     // Honest failure — no fake success here.
     res.status(500).json({ success: false, error: 'Could not send verification code. Please try again.' });
   }
